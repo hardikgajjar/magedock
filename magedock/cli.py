@@ -9,6 +9,7 @@ import glob
 from jinja2 import Environment, PackageLoader
 import subprocess
 import sys
+import docker
 from docker.client import Client
 from docker.utils import kwargs_from_env
 import dockerpty
@@ -163,10 +164,13 @@ def ssh():
     if sys.platform == "darwin":
         subprocess_cmd(command="$(dinghy shellinit)", write_env=True, print_lines=False)
 
-    cli = Client(**kwargs_from_env())
+    kwargs = kwargs_from_env()
+    kwargs['tls'].assert_hostname = False
+
+    cli = Client(**kwargs)
     if cli.ping():
-        ssh = cli.exec_create(container="pandakitchen_phpfpm_1", cmd="bash", tty=True)
-        container = cli.inspect_container("pandakitchen_phpfpm_1")
+        ssh = cli.exec_create(container="tet_phpfpm_1", cmd="bash", tty=True)
+        # container = cli.inspect_container("pandakitchen_phpfpm_1")
         # print container
         dockerpty.start_exec(cli, ssh['Id'], True)
 
