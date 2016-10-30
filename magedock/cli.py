@@ -12,7 +12,9 @@ import sys
 import docker
 from docker.client import Client
 from docker.utils import kwargs_from_env
+import socket
 import dockerpty
+import yaml
 from pprint import pprint
 
 
@@ -46,12 +48,17 @@ def subprocess_cmd(command, write_env=False, print_lines=True):
 
     process.stdin.close()
 
+    response = ''
+
     for line in process.stdout:
         if print_lines:
             print line
         if write_env:
             name, value = line.strip().split("=", 1)
             os.environ[name] = value
+        response += line
+
+    return response
 
 
 def add_docker_compose(project_name):
@@ -160,23 +167,64 @@ def move_files(src, dest):
 
 
 @click.command()
-def ssh():
-    if sys.platform == "darwin":
-        subprocess_cmd(command="$(dinghy shellinit)", write_env=True, print_lines=False)
+@click.option('--container', help='Container Name (Optional)')
+def ssh(container):
+    if not container:
+        docker_compose = read_docker_compose()
+        if docker_compose:
+            container = docker_compose['phpfpm']['hostname'] + "_1"
+        else:
+            sys.exit(0)
 
     kwargs = kwargs_from_env()
     kwargs['tls'].assert_hostname = False
+    kwargs['version'] = '1.22'
+    kwargs['timeout'] = 3
 
     cli = Client(**kwargs)
-    if cli.ping():
-        ssh = cli.exec_create(container="tet_phpfpm_1", cmd="bash", tty=True)
-        # container = cli.inspect_container("pandakitchen_phpfpm_1")
-        # print container
-        dockerpty.start_exec(cli, ssh['Id'], True)
 
+    # if not docker_ping(cli):
+    #     if sys.platform == "darwin":
+    #         dinghy_ip = subprocess_cmd(command="dinghy ip", print_lines=False)
+    #         if not valid_ip(dinghy_ip):
+    #             subprocess_cmd(command="dinghy start")
+    #         subprocess_cmd(command="$(dinghy shellinit)", write_env=True, print_lines=False)
+
+    if docker_ping(cli):
+        try:
+            dockerpty.exec_command(cli, container, "bash")
+        except docker.errors.APIError as err:
+            click.echo("Docker error: {0}".format(err))
+            click.echo("Make sure you have run 'magedock start' first.")
     else:
-        click.echo("Can't ping to docker, make sure that 'docker ps' command works")
+        click.echo("Can't ping to docker\nMake sure you have run 'magedock start' first")
 
+
+def valid_ip(address):
+    try:
+        socket.inet_aton(address)
+        return True
+    except:
+        return False
+
+
+def read_docker_compose():
+    try:
+        f = open('docker-compose.yml')
+        dataMap = yaml.safe_load(f)
+        f.close()
+        return dataMap
+    except:
+        click.echo("File not found: docker-compose.yml\nmake sure you're in project directory.")
+        return False
+
+
+def docker_ping(cli):
+    try:
+        cli.ping()
+        return True
+    except:
+        return False
 
 main.add_command(init)
 main.add_command(ssh)
