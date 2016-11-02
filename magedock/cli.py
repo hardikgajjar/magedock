@@ -5,7 +5,6 @@ from clint.textui import progress
 import tarfile
 import os
 import shutil
-import glob
 from jinja2 import Environment, PackageLoader
 import subprocess
 import sys
@@ -15,7 +14,6 @@ from docker.utils import kwargs_from_env
 import socket
 import dockerpty
 import yaml
-from pprint import pprint
 
 
 @click.group()
@@ -32,7 +30,43 @@ def init(project_name):
     prepare_project(project_name, selected_release, with_sample_data)
     add_docker_compose(project_name)
 
-    # pprint (vars(response))
+
+@click.command()
+@click.option('-d', '--daemon', is_flag=True, help='Daemon mode')
+def start(daemon):
+    docker_compose = read_docker_compose()
+    if docker_compose:
+        # start dinghy if not started
+        start_dinghy_if_required()
+
+        if daemon:
+            subprocess_cmd(command="docker-compose up -d")
+        else:
+            subprocess_cmd(command="docker-compose up")
+    else:
+        sys.exit(0)
+
+
+def start_dinghy_if_required():
+    cli = get_docker_client()
+    if not docker_ping(cli):
+        if sys.platform == "darwin":
+            dinghy_ip = subprocess_cmd(command="dinghy ip", print_lines=False)
+            if not valid_ip(dinghy_ip):
+                subprocess_cmd(command="dinghy start")
+            subprocess_cmd(command="$(dinghy shellinit)", write_env=True, print_lines=False)
+
+
+@click.command()
+def stop():
+    docker_compose = read_docker_compose()
+    if docker_compose:
+        # start dinghy if not started
+        start_dinghy_if_required()
+
+        subprocess_cmd(command="docker-compose stop")
+    else:
+        sys.exit(0)
 
 
 def get_with_sample_data():
@@ -50,13 +84,17 @@ def subprocess_cmd(command, write_env=False, print_lines=True):
 
     response = ''
 
-    for line in process.stdout:
+    while True:
+        line = process.stdout.readline()
         if print_lines:
-            print line
+            click.echo(line.strip())
         if write_env:
             name, value = line.strip().split("=", 1)
             os.environ[name] = value
-        response += line
+        response += line.strip()
+
+        if not line and process.poll() is not None:
+            break
 
     return response
 
@@ -76,7 +114,7 @@ def prepare_project(project_name, selected_release, with_sample_data):
 def setup_directory(project_name):
     project_directory = Path(project_name)
     if project_directory.exists():
-        click.echo('A directory with name "{0}" already exists'.format(project_name))
+        error_message('A directory with name "{0}" already exists'.format(project_name))
         sys.exit(0)
     else:
         project_directory.mkdir()
@@ -107,21 +145,21 @@ def get_release():
     api_url = "https://api.github.com/repos/magento/magento2/releases"
     response = requests.get(api_url)
     if response.status_code != 200:
-        click.echo('Not able to get list of Magento2 releases from {}'.format(api_url))
+        error_message('Not able to get list of Magento2 releases from {}'.format(api_url))
         sys.exit(0)
     else:
         releases = response.json()
         i = 0
         for release in releases:
             i += 1
-            click.echo('[{}] {}'.format(i, release['tag_name']))
+            warning_message('[{}] {}'.format(i, release['tag_name']))
         selected_release_number = click.prompt('Magento version', type=click.IntRange(1, i), default=1)
         selected_release = releases[selected_release_number-1]
         return selected_release
 
 
 def download_file(url, filename):
-    click.echo('Downloading from '+url)
+    warning_message('Downloading from '+url)
     r = requests.get(url, stream=True)
 
     # sometimes the response is empty, so try to re-request
@@ -137,7 +175,7 @@ def download_file(url, filename):
 
 
 def extract_file(file_name, dest_path):
-    click.echo('Extracting file ' + file_name)
+    warning_message('Extracting file ' + file_name)
     tar = tarfile.open(file_name)
     tar.extractall(dest_path)
     tar.close()
@@ -176,28 +214,24 @@ def ssh(container):
         else:
             sys.exit(0)
 
-    kwargs = kwargs_from_env()
-    kwargs['tls'].assert_hostname = False
-    kwargs['version'] = '1.22'
-    kwargs['timeout'] = 3
-
-    cli = Client(**kwargs)
-
-    # if not docker_ping(cli):
-    #     if sys.platform == "darwin":
-    #         dinghy_ip = subprocess_cmd(command="dinghy ip", print_lines=False)
-    #         if not valid_ip(dinghy_ip):
-    #             subprocess_cmd(command="dinghy start")
-    #         subprocess_cmd(command="$(dinghy shellinit)", write_env=True, print_lines=False)
+    cli = get_docker_client()
 
     if docker_ping(cli):
         try:
             dockerpty.exec_command(cli, container, "bash")
         except docker.errors.APIError as err:
-            click.echo("Docker error: {0}".format(err))
-            click.echo("Make sure you have run 'magedock start' first.")
+            error_message("Docker error: {0}".format(err))
+            error_message("Make sure you have run 'magedock start' first.")
     else:
-        click.echo("Can't ping to docker\nMake sure you have run 'magedock start' first")
+        error_message("Can't ping to docker\nMake sure you have run 'magedock start' first")
+
+
+def get_docker_client():
+    kwargs = kwargs_from_env()
+    kwargs['tls'].assert_hostname = False
+    kwargs['version'] = '1.22'
+    kwargs['timeout'] = 3
+    return Client(**kwargs)
 
 
 def valid_ip(address):
@@ -215,7 +249,7 @@ def read_docker_compose():
         f.close()
         return dataMap
     except:
-        click.echo("File not found: docker-compose.yml\nmake sure you're in project directory.")
+        error_message("File not found: docker-compose.yml\nmake sure you're in project directory.")
         return False
 
 
@@ -226,5 +260,24 @@ def docker_ping(cli):
     except:
         return False
 
+
+def normal_message(text):
+    click.secho(text)
+
+
+def success_message(text):
+    click.secho(text, fg='green')
+
+
+def error_message(text):
+    click.secho(text, fg='red')
+
+
+def warning_message(text):
+    click.secho(text, fg='yellow')
+
+
 main.add_command(init)
 main.add_command(ssh)
+main.add_command(start)
+main.add_command(stop)
