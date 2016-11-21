@@ -7,7 +7,7 @@ dependencies = ['click', 'pathlib', 'clint', 'requests', 'jinja', 'docker-py>=1.
 
 setup(
     name='magedock',
-    version='0.1.0',
+    version='0.1.1',
     url='https://github.com/hardikgajjar/magedock',
     license='BSD',
     author='Hardik Gajjar',
@@ -39,7 +39,6 @@ setup(
         'Operating System :: POSIX',
         'Operating System :: MacOS',
         'Operating System :: Unix',
-        'Operating System :: Microsoft :: Windows',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 3',
