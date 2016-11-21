@@ -3,7 +3,7 @@ A tool to init Magento2 project with docker.
 """
 from setuptools import find_packages, setup
 
-dependencies = ['click', 'pathlib', 'clint', 'requests', 'jinja', 'docker-py>=1.10.4', 'dockerpty', 'PyYAML']
+dependencies = ['click', 'pathlib', 'clint', 'requests', 'jinja', 'docker-py>=1.10.4', 'dockerpty', 'PyYAML', 'click-help-colors']
 
 setup(
     name='magedock',
