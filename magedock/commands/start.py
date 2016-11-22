@@ -17,6 +17,9 @@ def start(daemon):
         # start dinghy if not started
         helper.start_dinghy_if_required()
 
+        helper.warning_message('Downloading latest images')
+        helper.subprocess_cmd(command="docker-compose pull")
+
         if daemon:
             helper.subprocess_cmd(command="docker-compose up -d")
         else:

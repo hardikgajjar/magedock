@@ -24,6 +24,7 @@ def init(project_name):
     with_sample_data = get_with_sample_data()
     prepare_project(project_name, selected_release, with_sample_data)
     add_docker_compose(project_name)
+    npm_install(project_name)
 
 
 def get_release():
@@ -133,3 +134,14 @@ def move_files(src, dest):
     for filename in os.listdir(src):
         shutil.move(src + "/" + filename, dest + filename)
     os.rmdir(src)
+
+
+def npm_install(project_name):
+    helper.warning_message('Installing node modules')
+    src = project_name + "/package.json.sample"
+    dest = project_name + "/package.json"
+    os.rename(src, dest)
+    src = project_name + "/Gruntfile.js.sample"
+    dest = project_name + "/Gruntfile.js"
+    os.rename(src, dest)
+    helper.subprocess_cmd(command='cd '+project_name+' && npm install')
