@@ -15,10 +15,8 @@ from click_help_colors import HelpColorsCommand
 def ssh(container):
     """SSH into container (PHP by default)"""
     if not container:
-        docker_compose = helper.read_docker_compose()
-        if docker_compose:
-            container = docker_compose['phpfpm']['hostname'] + "_1"
-        else:
+        container = helper.get_php_container()
+        if not container:
             sys.exit(0)
 
     cli = helper.get_docker_client()
