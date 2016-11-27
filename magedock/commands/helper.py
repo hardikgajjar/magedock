@@ -61,7 +61,7 @@ def docker_ping(cli):
 
 
 def subprocess_cmd(command, write_env=False, print_lines=True):
-    process = subprocess.Popen(["sh"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    process = subprocess.Popen(["sh"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     process.stdin.write(command + "\n")
 
     if write_env:
@@ -154,9 +154,22 @@ def host_exists(hostname):
 def get_php_container():
     docker_compose = read_docker_compose()
     if docker_compose:
-        return docker_compose['phpfpm']['hostname'] + "_1"
+        return get_current_directory_name() + "_phpfpm_1"
     else:
         return False
+
+
+def get_app_container():
+    docker_compose = read_docker_compose()
+    if docker_compose:
+        return get_current_directory_name() + "_app_1"
+    else:
+        return False
+
+
+def get_current_directory_name():
+    path, current_directory = os.path.split(os.getcwd())
+    return current_directory
 
 
 def get_host_name():
