@@ -61,7 +61,7 @@ def docker_ping(cli):
 
 
 def subprocess_cmd(command, write_env=False, print_lines=True):
-    process = subprocess.Popen(["sh"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    process = subprocess.Popen(["sh"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     process.stdin.write(command + "\n")
 
     if write_env:
