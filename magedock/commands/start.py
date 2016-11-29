@@ -29,10 +29,10 @@ def start(daemon):
             add_host_name_thread = threading.Thread(target=add_host_name)
             add_host_name_thread.start()
 
-            if daemon:
-                helper.subprocess_cmd(command="docker-compose up -d")
-            else:
-                helper.subprocess_cmd(command="docker-compose up")
+        if daemon:
+            helper.subprocess_cmd(command="docker-compose up -d")
+        else:
+            helper.subprocess_cmd(command="docker-compose up")
     else:
         sys.exit(0)
 
