@@ -3,7 +3,6 @@ import helper as helper
 import sys
 from click_help_colors import HelpColorsCommand
 import threading
-import signal
 import time
 import requests
 import docker
@@ -61,11 +60,3 @@ def add_host_name():
                 pass
             count += 1
             time.sleep(1)
-
-
-def signal_handler(signal, frame):
-    helper.warning_message("Caught Interrupt. Aborting")
-    sys.exit(0)
-
-
-signal.signal(signal.SIGINT, signal_handler)
