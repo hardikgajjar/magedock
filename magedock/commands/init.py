@@ -9,6 +9,7 @@ from jinja2 import Environment, PackageLoader
 import sys
 import helper as helper
 from click_help_colors import HelpColorsCommand
+import re
 
 
 @click.command(
@@ -23,6 +24,7 @@ def init(project_name):
     selected_release = get_release()
     with_sample_data = get_with_sample_data()
     prepare_project(project_name, selected_release, with_sample_data)
+    remove_vendor_dir_from_gitignore(project_name)
     add_docker_compose(project_name)
     npm_install(project_name)
 
@@ -140,8 +142,26 @@ def npm_install(project_name):
     helper.warning_message('Installing node modules')
     src = project_name + "/package.json.sample"
     dest = project_name + "/package.json"
-    os.rename(src, dest)
+    if os.path.isfile(src):
+        os.rename(src, dest)
     src = project_name + "/Gruntfile.js.sample"
     dest = project_name + "/Gruntfile.js"
-    os.rename(src, dest)
+    if os.path.isfile(src):
+        os.rename(src, dest)
     helper.subprocess_cmd(command='cd '+project_name+' && npm install')
+
+
+def remove_vendor_dir_from_gitignore(project_name):
+    pattern = re.compile("/vendor?")
+    removeLines = []
+    for i, line in enumerate(open(project_name + '/.gitignore')):
+        for match in re.finditer(pattern, line):
+            removeLines.append(line)
+    f = open(project_name + '/.gitignore', "r")
+    allLines = f.readlines()
+    f.close()
+    f = open(project_name + '/.gitignore', "w")
+    for line in allLines:
+        if line not in removeLines:
+            f.write(line)
+    f.close()
