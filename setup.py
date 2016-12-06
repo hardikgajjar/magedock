@@ -7,12 +7,12 @@ dependencies = ['click', 'pathlib', 'clint', 'requests', 'jinja2', 'docker-py>=1
 
 setup(
     name='magedock',
-    version='0.1.5',
+    version='0.1.6',
     url='https://github.com/hardikgajjar/magedock',
     license='BSD',
     author='Hardik Gajjar',
     author_email='hardik.kwt@gmail.com',
-    description='A tool to develop Magento2 project with docker.',
+    description='A tool to assist with handling of Magento 2.x projects for development.',
     long_description=__doc__,
     packages=find_packages(exclude=['tests']),
     include_package_data=True,

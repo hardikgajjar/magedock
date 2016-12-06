@@ -21,8 +21,8 @@ def error_message(text):
     click.secho(text, fg='red')
 
 
-def warning_message(text):
-    click.secho(text, fg='yellow')
+def warning_message(text, nl=True):
+    click.secho(text, fg='yellow', nl=nl)
 
 
 def start_dinghy_if_required():
@@ -167,6 +167,14 @@ def get_app_container():
         return False
 
 
+def get_db_container():
+    docker_compose = read_docker_compose()
+    if docker_compose:
+        return get_current_directory_name() + "_db_1"
+    else:
+        return False
+
+
 def get_current_directory_name():
     path, current_directory = os.path.split(os.getcwd())
     return current_directory
@@ -178,3 +186,23 @@ def get_host_name():
         return docker_compose['app']['environment']['VIRTUAL_HOST']
     else:
         return False
+
+
+def get_db_root_password():
+    docker_compose = read_docker_compose()
+    if docker_compose:
+        return docker_compose['db']['environment']['MYSQL_ROOT_PASSWORD']
+    else:
+        return False
+
+
+def get_ip_address_of_container(container):
+    cli = get_docker_client()
+    metadata = cli.inspect_container(container)
+    if isinstance(metadata, dict):
+        if 'NetworkSettings' in metadata:
+            if 'IPAddress' in metadata['NetworkSettings']:
+                ipaddress = metadata['NetworkSettings']['IPAddress']
+                if valid_ip(ipaddress):
+                    return ipaddress
+    return False

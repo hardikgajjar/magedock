@@ -5,6 +5,7 @@ from .commands.init import init
 from .commands.start import start
 from .commands.stop import stop
 from .commands.ssh import ssh
+from .commands.db import db
 import pkg_resources  # part of setuptools
 
 
@@ -34,3 +35,4 @@ main.add_command(init)
 main.add_command(ssh)
 main.add_command(start)
 main.add_command(stop)
+main.add_command(db)
